@@ -1,131 +1,80 @@
-This is a high-caliber, academic-style README.md designed for a technical
-presentation or a high-level institutional review (e.g., Mercy Corps, AgriFin,
-or World Bank).
+# ClearPath Credit: Explainable AI for Credit Scoring
 
-It uses LaTeX formatting for mathematical rigor and Mermaid.js for architectural
-visualization.
+**Kenya AI Challenge — Mercy Corps AgriFin Track**
+**Team:** ClearPath Credit (Bradley Opiyo, Joshua Kingsley)
+**Target Submission:** June 25, 2026
+**Route 1:** Finance Challenge Category
 
-ClearPath Credit: A Hybrid Explainable AI (XAI) Framework for Smallholder Credit Scrutiny via Low-Bandwidth Channels
+---
 
-Project Track: Mercy Corps AgriFin Track — Kenya AI Challenge
-Research Pathway: Financial Inclusion (Finance Challenge Category)
-Target Region: Uganda (Smallholder Women Farmers)
+## 📖 Project Overview
 
-1. Abstract
+This project addresses the **"Explainable AI for Credit Scoring (Women Farmers + USSD)"** brief submitted by eSusFarm, Uganda.
 
-ClearPath Credit addresses the systemic exclusion of women smallholder farmers
-from formal financial ecosystems. In sub-Saharan Africa, women contribute
-approximately 73% of agricultural labor but are frequently marginalized by
-"black-box" credit scoring models. Our framework introduces a hybrid scoring
-engine—S_{total}—which synthesizes Gradient Boosted behavioral data with
-Graph-based social capital. Crucially, the system utilizes a Large Language
-Model (LLM) orchestration layer to decompose high-dimensional SHAP (SHapley
-Additive exPlanations) values into actionable, localized USSD/SMS feedback,
-ensuring institutional transparency and borrower agency in low-connectivity
-environments.
+Women smallholder farmers accessing credit through USSD and feature phones often receive financial decisions they cannot understand or act on. Standard AI explainability tools are built for high-bandwidth visual dashboards, making them unsuitable for low-bandwidth, local-language delivery (like 182-character USSD/SMS limits). Our solution bridges this gap, providing explainable AI tailored for rural borrowers.
 
-2. System Architecture & Methodology
+---
 
-2.1 The Hybrid Scoring Objective Function
+## ⚠️ The Problem
 
-To mitigate the "thin-file" problem common among rural borrowers, we move beyond
-univariate behavioral models. We define creditworthiness through a composite
-index:
+In Uganda, women make up an estimated 73% of the agricultural workforce but face structural exclusion from formal credit due to traditional collateral requirements.
 
-S_{total} = \alpha \cdot M(x) + (1 - \alpha) \cdot G(v)
+* **The Transparency Gap:** Digital credit models offer a solution, but lenders face a trade-off between predictive accuracy and transparency. Thin-file borrowers are left with unexplained, automated decisions (e.g., loan rejections or unclear tier ratings).
+* **The Access Gap:** Uganda's mobile gender gap is roughly 4% in urban areas but spikes to ~22% in rural areas. The USSD/feature-phone channel is where access is most unequal.
+* **The Impact:** When a borrower like Joyce Namuli (a creditworthy but thin-file coffee farmer) receives an unexplained rating, she cannot identify which behaviors to adjust. Relying on third parties to read the text compromises her privacy and financial agency.
 
-Where:
+---
 
-  - M(x): Behavioral score derived from an XGBoost regressor, trained on
-    predictors identified in the 2022 Jinja Study (repayment latency, USSD
-    engagement, and input consistency).
-  - G(v): Social Trust Score derived from Neo4j Graph Data Science, mapping the
-    farmer’s centrality within savings groups (SACCOs) and input-dealer
-    networks.
-  - \alpha: The balancing coefficient (hyper-parameterized at 0.65) to ensure
-    individual accountability is weighted against community-based trust.
+## 💡 Our Solution
 
-2.2 Explainability Pipeline (XAI)
+We are building a **USSD/SMS-based explanation layer** that sits atop an existing credit decision engine. It provides the farmer with a short, plain-language answer to three core questions:
 
-To provide transparency without exposing proprietary logic, we calculate the
-Shapley values (\phi_i) for the model's output:
+1. **What was decided?**
+2. **What most affected the decision?**
+3. **What is one realistic action to improve her position next season?**
 
-f(x) = L + \sum_{i=1}^{M} \phi_i(f, x)
+### Core Workflow
 
-The system filters these values to identify Controllable Behavioral Drivers.
-These drivers are then passed through the Featherless-Qwen RAG pipeline to
-generate a 160-character natural language explanation in local dialects (e.g.,
-Luganda).
+1. A farmer receives her credit tier via USSD and requests "why."
+2. The system retrieves her record and finds relationally similar farmers who improved their tier over time.
+3. A grounded comparison is generated to provide realistic advice.
+4. The message is delivered in her local language, within USSD limits, focusing *only* on factors within her control (e.g., repayment timing, wallet consistency).
 
-3. Operational Optimization
+---
 
-A core innovation of ClearPath Credit is the integration of Optimization
-Algorithms to facilitate physical interventions where digital nudges are
-insufficient.
+## 🏗️ Technical Architecture
 
-3.1 Geospatial Agent Allocation (ARO)
+### 1. Decision Engine (Foundational Layer)
 
-For farmers whose scores are suppressed by factors requiring physical
-verification (e.g., Soil Health f_{032}), the system triggers an Agent Routing
-Optimization. This is modeled as a Capacitated Vehicle Routing Problem (CVRP):
+We utilize a hybrid index model built on variables from a 2022 Jinja region observational study. The credit index is defined as:
 
-\text{Minimize } Z = \sum_{i \in V} \sum_{j \in V} c_{ij} x_{ij}
+$$S_{total} = \alpha \cdot M(x) + (1 - \alpha) \cdot G(v)$$
 
-Subject to:
+* **$M(x)$**: A behavioral score derived from a gradient-boosted model (**XGBoost**) trained on five predictors: repayment timing, input-purchase consistency, mobile/USSD usage consistency, savings-group participation, and farm size/market distance.
+* **$G(v)$**: A normalized trust score derived from the farmer's position in the Neo4j relationship graph.
+* **$\alpha$**: A weighting parameter balancing individual behavioral scoring against network-based trust.
 
-  - Maximizing the "Expected Credit Lift" per agent-visit.
-  - Minimizing fuel and transit time across rural coordinates.
+*Note: Feature-importance attribution is generated alongside the score to preserve predictive power for thin-file farmers without sacrificing institutional transparency.*
 
-3.2 Dynamic Resource Migration
+### 2. Institutional Masking & Language Layer (Featherless)
 
-By monitoring the Graph Centrality in Neo4j, the algorithm identifies "Trust
-Sinks"—localized regions where group repayment is fluctuating. The system
-optimizes the movement of mobile advisory units to these high-risk nodes to
-prevent "credit contagion," ensuring the stability of the lender's portfolio.
+* **For the Lender:** Full feature-importance output is routed to the MIS dashboard for bias auditing and oversight.
+* **For the Farmer:** Actionable behaviors are isolated and passed through a **Featherless-hosted RAG pipeline** (e.g., Qwen-2.5). This compresses the explanation into a concise, localized message suitable for USSD.
 
-4. Technical Stack
+### 3. Graph Layer (Neo4j)
 
-graph TD
-    A[Farmer USSD Input] --> B{Masumi Agent}
-    B --> C[XGBoost Engine]
-    B --> D[Neo4j Graph DB]
-    C --> E[SHAP Explainer]
-    D --> F[G(v) Trust Score]
-    E & F --> G[Hybrid Index]
-    G --> H[Featherless LLM]
-    H --> I[Localized SMS/USSD]
-    I --> J[Optimization: Agent Dispatch]
+Beyond calculating $G(v)$, the Neo4j graph powers peer-comparison explanations. Instead of simple vector-similarity lookups, the graph matches shared relationships (e.g., shared savings group or input dealer) to ensure RAG-generated advice is grounded in real, local patterns.
 
-  - Logic Core (server.js): Orchestrates the Masumi agentic workflow.
-  - Interaction Engine (simulator.js): State-machine for USSD navigation.
-  - Graph Layer: Neo4j AuraDB for social capital mapping.
-  - Inference: Featherless.ai (Qwen-2.5-72B) for high-compression XAI
-    translation.
+### 4. Coordination & Interface (Masumi & Lovable)
 
-5. Deployment & Structure
+* **Masumi:** Coordinates Data Collection, Scoring, and Translation as agent-to-agent job requests.
+* **Lovable:** Powers the demo interface, showcasing the lender-facing MIS dashboard alongside a simulated farmer-facing USSD experience.
 
-| File           | Category      | Function                                                    |
-| :------------- | :------------ | :---------------------------------------------------------- |
-| `server.js`    | **Back-end**  | Masumi agent coordination & ML inference.                   |
-| `simulator.js` | **UX/UI**     | Simulated USSD environment for field testing.               |
-| `index.html`   | **Dashboard** | Lender-facing bias audit and optimization map.              |
-| `sample_data/` | **Data**      | Calibrated synthetic records based on the Jinja 2022 study. |
+---
 
-6. Performance & Reward Function
+## 📚 References
 
-The success of the ClearPath model is evaluated against an integrated Reward
-Function R:
-
-R = (Accuracy \cdot \beta) + (Equity\_Weight \cdot \gamma) - (Complexity\_Penalty)
-
-This ensures the model remains mathematically accurate while penalizing any bias
-against female borrowers or over-complicated USSD outputs.
-
-7. Institutional Compliance
-
-ClearPath Credit aligns with Bank of Uganda Consumer Protection Guidelines and
-GDPR-standard data masking, ensuring that while the farmer receives an
-actionable nudge, her raw scoring data remains encrypted and institutionalized.
-
-ClearPath Credit | Explainability for Empowerment
-© 2025 Kenya AI Challenge / Mercy Corps AgriFin. All rights reserved.
+1. **World Bank (2021).** A sustainable green recovery for Uganda depends on women. *World Bank Blogs.*
+2. **FSD Uganda (2018).** FinScope Uganda 2018 Survey Report. *Financial Sector Deepening Uganda.*
+3. **GSMA (2021).** The Mobile Gender Gap Report 2021. *GSM Association.*
+4. **Midamba, D., et al. (2022).** Drivers of Access to Credit Among Smallholder Farmers in Uganda: Application of Binary Logistic Model. *East African Journal of Business and Economics*, 5(1), pp. 154–163.
